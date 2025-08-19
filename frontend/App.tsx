@@ -36,7 +36,7 @@ export default function App() {
         // Web: try multiple clipboard methods with fallbacks
         let clipboardText = '';
         
-        // Method 1: Try navigator.clipboard (modern browsers)
+        // Method 1: Try navigator.clipboard (modern browsers, HTTPS required)
         try {
           // Check if we need to request permission first (common on Linux/Ubuntu)
           if (navigator.clipboard && navigator.permissions) {
@@ -60,13 +60,30 @@ export default function App() {
         } catch (error) {
           console.log('Clipboard method 1 failed:', error);
           
-          // Method 2: Try document.execCommand (legacy browsers)
+          // Method 2: Try document.execCommand (legacy browsers, works on HTTP)
           try {
             const textArea = document.createElement('textarea');
             textArea.value = '';
+            textArea.style.position = 'fixed';
+            textArea.style.left = '-9999px';
+            textArea.style.top = '-9999px';
             document.body.appendChild(textArea);
             textArea.focus();
-            const success = document.execCommand('paste');
+            
+            // Try multiple paste commands
+            let success = false;
+            try {
+              success = document.execCommand('paste');
+            } catch (e) {
+              // Try alternative approach
+              try {
+                textArea.select();
+                success = document.execCommand('paste');
+              } catch (e2) {
+                console.log('Alternative paste failed:', e2);
+              }
+            }
+            
             clipboardText = textArea.value;
             document.body.removeChild(textArea);
             
@@ -87,6 +104,30 @@ export default function App() {
             console.log('Clipboard method 3 (window.clipboardData) successful');
           } catch (error) {
             console.log('Clipboard method 3 failed:', error);
+          }
+        }
+        
+        // Method 4: Try to capture paste event (works on HTTP)
+        if (!clipboardText) {
+          try {
+            clipboardText = await capturePasteEvent();
+            if (clipboardText) {
+              console.log('Clipboard method 4 (paste event) successful');
+            }
+          } catch (error) {
+            console.log('Clipboard method 4 failed:', error);
+          }
+        }
+        
+        // Method 5: Try to use selection API as fallback
+        if (!clipboardText) {
+          try {
+            clipboardText = await getSelectionAsClipboard();
+            if (clipboardText) {
+              console.log('Clipboard method 5 (selection) successful');
+            }
+          } catch (error) {
+            console.log('Clipboard method 5 failed:', error);
           }
         }
         
@@ -115,8 +156,9 @@ export default function App() {
               'Ubuntu/Linux sistemlerde pano erişimi için:\n\n' +
               '1. Tarayıcıyı yeniden başlatın\n' +
               '2. Pano izinlerini kontrol edin\n' +
-              '3. URL\'yi manuel olarak yapıştırın\n' +
-              '4. Debug modunu açarak pano testi çalıştırın'
+              '3. URL\'yi manuel olarak yapıştırın (Ctrl+V)\n' +
+              '4. Debug modunu açarak pano testi çalıştırın\n' +
+              '5. Farklı tarayıcı deneyin'
             );
           } else {
             Alert.alert(
@@ -162,6 +204,99 @@ export default function App() {
     }
   };
 
+  // Method 4: Capture paste event (works on HTTP)
+  const capturePasteEvent = (): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        document.removeEventListener('paste', handlePaste);
+        reject(new Error('Paste event timeout'));
+      }, 3000);
+
+      const handlePaste = (event: ClipboardEvent) => {
+        clearTimeout(timeout);
+        document.removeEventListener('paste', handlePaste);
+        
+        if (event.clipboardData) {
+          const text = event.clipboardData.getData('text/plain');
+          resolve(text || '');
+        } else {
+          reject(new Error('No clipboard data in paste event'));
+        }
+      };
+
+      document.addEventListener('paste', handlePaste);
+      
+      // Try to trigger paste programmatically
+      try {
+        const textArea = document.createElement('textarea');
+        textArea.style.position = 'fixed';
+        textArea.style.left = '-9999px';
+        textArea.style.top = '-9999px';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        
+        // Try to paste
+        const success = document.execCommand('paste');
+        if (success) {
+          const text = textArea.value;
+          document.body.removeChild(textArea);
+          clearTimeout(timeout);
+          document.removeEventListener('paste', handlePaste);
+          resolve(text);
+          return;
+        }
+        
+        document.body.removeChild(textArea);
+      } catch (error) {
+        console.log('Programmatic paste failed:', error);
+      }
+      
+      // Show instruction to user
+      Alert.alert(
+        'Pano Erişimi', 
+        'Lütfen şimdi Ctrl+V (veya Cmd+V) ile YouTube URL\'sini yapıştırın.',
+        [
+          {
+            text: 'İptal',
+            onPress: () => {
+              clearTimeout(timeout);
+              document.removeEventListener('paste', handlePaste);
+              reject(new Error('User cancelled'));
+            }
+          }
+        ]
+      );
+    });
+  };
+
+  // Method 5: Get selection as clipboard fallback
+  const getSelectionAsClipboard = async (): Promise<string> => {
+    try {
+      // Check if there's selected text
+      const selection = window.getSelection();
+      if (selection && selection.toString().trim()) {
+        const selectedText = selection.toString().trim();
+        if (isValidYouTubeUrl(selectedText)) {
+          return selectedText;
+        }
+      }
+      
+      // Try to get from any focused input
+      const activeElement = document.activeElement as HTMLInputElement;
+      if (activeElement && (activeElement.tagName === 'INPUT' || activeElement.tagName === 'TEXTAREA')) {
+        const inputText = activeElement.value;
+        if (inputText && isValidYouTubeUrl(inputText)) {
+          return inputText;
+        }
+      }
+      
+      return '';
+    } catch (error) {
+      console.log('Selection fallback failed:', error);
+      return '';
+    }
+  };
+
   const testClipboard = async () => {
     if (Platform.OS !== 'web') return;
     
@@ -185,8 +320,10 @@ export default function App() {
     let method1Success = false;
     let method2Success = false;
     let method3Success = false;
+    let method4Success = false;
+    let method5Success = false;
     
-    // Method 1
+    // Method 1: navigator.clipboard (HTTPS required)
     try {
       const text = await navigator.clipboard.readText();
       method1Success = !!text;
@@ -195,13 +332,28 @@ export default function App() {
       console.log('Method 1 (navigator.clipboard): FAILED -', error);
     }
     
-    // Method 2
+    // Method 2: execCommand (works on HTTP)
     try {
       const textArea = document.createElement('textarea');
       textArea.value = '';
+      textArea.style.position = 'fixed';
+      textArea.style.left = '-9999px';
+      textArea.style.top = '-9999px';
       document.body.appendChild(textArea);
       textArea.focus();
-      const success = document.execCommand('paste');
+      
+      let success = false;
+      try {
+        success = document.execCommand('paste');
+      } catch (e) {
+        try {
+          textArea.select();
+          success = document.execCommand('paste');
+        } catch (e2) {
+          console.log('Alternative paste failed:', e2);
+        }
+      }
+      
       const text = textArea.value;
       document.body.removeChild(textArea);
       method2Success = success && !!text;
@@ -210,7 +362,7 @@ export default function App() {
       console.log('Method 2 (execCommand): FAILED -', error);
     }
     
-    // Method 3
+    // Method 3: window.clipboardData (IE/Edge)
     try {
       if ('clipboardData' in window && (window as any).clipboardData) {
         const text = (window as any).clipboardData.getData('text');
@@ -223,23 +375,57 @@ export default function App() {
       console.log('Method 3 (window.clipboardData): FAILED -', error);
     }
     
-    console.log('=== Test Results ===');
-    console.log('Method 1 (navigator.clipboard):', method1Success ? '✅' : '❌');
-    console.log('Method 2 (execCommand):', method2Success ? '✅' : '❌');
-    console.log('Method 3 (window.clipboardData):', method3Success ? '✅' : '❌');
+    // Method 4: Paste event capture (works on HTTP)
+    try {
+      const text = await capturePasteEvent();
+      method4Success = !!text;
+      console.log('Method 4 (paste event):', method4Success ? 'SUCCESS' : 'FAILED - Empty');
+    } catch (error) {
+      console.log('Method 4 (paste event): FAILED -', error);
+    }
     
-    const workingMethods = [method1Success, method2Success, method3Success].filter(Boolean).length;
-    console.log('Working methods:', workingMethods, 'out of 3');
+    // Method 5: Selection fallback (works on HTTP)
+    try {
+      const text = await getSelectionAsClipboard();
+      method5Success = !!text;
+      console.log('Method 5 (selection):', method5Success ? 'SUCCESS' : 'FAILED - Empty');
+    } catch (error) {
+      console.log('Method 5 (selection): FAILED -', error);
+    }
+    
+    console.log('=== Test Results ===');
+    console.log('Method 1 (navigator.clipboard):', method1Success ? '✅' : '❌', '- HTTPS required');
+    console.log('Method 2 (execCommand):', method2Success ? '✅' : '❌', '- HTTP compatible');
+    console.log('Method 3 (window.clipboardData):', method3Success ? '✅' : '❌', '- IE/Edge only');
+    console.log('Method 4 (paste event):', method4Success ? '✅' : '❌', '- HTTP compatible');
+    console.log('Method 5 (selection):', method5Success ? '✅' : '❌', '- HTTP compatible');
+    
+    const workingMethods = [method1Success, method2Success, method3Success, method4Success, method5Success].filter(Boolean).length;
+    const httpCompatibleMethods = [method2Success, method4Success, method5Success].filter(Boolean).length;
+    
+    console.log('Working methods:', workingMethods, 'out of 5');
+    console.log('HTTP compatible methods:', httpCompatibleMethods, 'out of 3');
     
     if (workingMethods === 0) {
       Alert.alert(
         'Pano Testi', 
-        'Hiçbir pano yöntemi çalışmıyor. Bu Ubuntu/Linux sistemlerde yaygın bir sorundur. Lütfen URL\'yi manuel olarak yapıştırın.'
+        'Hiçbir pano yöntemi çalışmıyor. Bu Ubuntu/Linux sistemlerde yaygın bir sorundur.\n\n' +
+        'Çözümler:\n' +
+        '• URL\'yi manuel olarak yapıştırın (Ctrl+V)\n' +
+        '• Farklı tarayıcı deneyin\n' +
+        '• Tarayıcıyı yeniden başlatın'
+      );
+    } else if (httpCompatibleMethods > 0) {
+      Alert.alert(
+        'Pano Testi', 
+        `${workingMethods} pano yöntemi çalışıyor (${httpCompatibleMethods} HTTP uyumlu).\n\n` +
+        'HTTP\'de de çalışabilir! Detaylar için konsolu kontrol edin.'
       );
     } else {
       Alert.alert(
         'Pano Testi', 
-        `${workingMethods} pano yöntemi çalışıyor. Detaylar için konsolu kontrol edin.`
+        `${workingMethods} pano yöntemi çalışıyor ama sadece HTTPS\'de.\n\n` +
+        'HTTP kullanıyorsanız URL\'yi manuel olarak yapıştırın.'
       );
     }
   };
@@ -386,6 +572,34 @@ export default function App() {
         />
         <TouchableOpacity style={styles.pasteButton} onPress={readClipboard}>
           <Text style={styles.pasteButtonText}>Yapıştır</Text>
+        </TouchableOpacity>
+      </View>
+      
+      <View style={styles.manualPasteContainer}>
+        <TouchableOpacity 
+          style={styles.manualPasteButton} 
+          onPress={() => {
+            Alert.alert(
+              'Manuel Yapıştırma',
+              'YouTube URL\'sini kopyalayın, sonra bu alana Ctrl+V (veya Cmd+V) ile yapıştırın.',
+              [
+                { text: 'Tamam', style: 'default' },
+                { 
+                  text: 'Pano Testi', 
+                  onPress: () => {
+                    if (debugMode) {
+                      testClipboard();
+                    } else {
+                      setDebugMode(true);
+                      setTimeout(() => testClipboard(), 100);
+                    }
+                  }
+                }
+              ]
+            );
+          }}
+        >
+          <Text style={styles.manualPasteButtonText}>📋 Manuel Yapıştırma Yardımı</Text>
         </TouchableOpacity>
       </View>
       
@@ -536,6 +750,20 @@ const styles = StyleSheet.create({
     color: 'white',
     fontWeight: '600',
     fontSize: 14,
+  },
+  manualPasteContainer: {
+    marginBottom: 15,
+  },
+  manualPasteButton: {
+    backgroundColor: '#E0E0E0',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 6,
+    alignItems: 'center',
+  },
+  manualPasteButtonText: {
+    fontSize: 14,
+    color: '#333',
   },
   downloadButton: {
     backgroundColor: '#4CAF50',

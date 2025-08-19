@@ -66,9 +66,11 @@
         
         <div class="test-section">
             <h3>🧪 Pano Testleri</h3>
-            <button class="button" onclick="testMethod1()">Test 1: navigator.clipboard</button>
-            <button class="button" onclick="testMethod2()">Test 2: execCommand</button>
-            <button class="button" onclick="testMethod3()">Test 3: clipboardData</button>
+            <button class="button" onclick="testMethod1()">Test 1: navigator.clipboard (HTTPS)</button>
+            <button class="button" onclick="testMethod2()">Test 2: execCommand (HTTP)</button>
+            <button class="button" onclick="testMethod3()">Test 3: clipboardData (IE/Edge)</button>
+            <button class="button" onclick="testMethod4()">Test 4: Paste Event (HTTP)</button>
+            <button class="button" onclick="testMethod5()">Test 5: Selection (HTTP)</button>
             <button class="button" onclick="runAllTests()">Tüm Testleri Çalıştır</button>
         </div>
         
@@ -217,12 +219,92 @@
             }
         }
         
+        function testMethod4() {
+            log('Test 4 (paste event) başlatılıyor...');
+            try {
+                // Create a temporary input to capture paste
+                const tempInput = document.createElement('input');
+                tempInput.style.position = 'fixed';
+                tempInput.style.left = '-9999px';
+                tempInput.style.top = '-9999px';
+                document.body.appendChild(tempInput);
+                tempInput.focus();
+                
+                // Try to paste
+                const success = document.execCommand('paste');
+                const text = tempInput.value;
+                document.body.removeChild(tempInput);
+                
+                if (success && text) {
+                    log(`✅ Test 4 başarılı! Pano içeriği: ${text.substring(0, 50)}...`, 'success');
+                    updateTestResult('method4', true, text);
+                } else {
+                    log('⚠️ Test 4: execCommand başarısız veya pano boş', 'warning');
+                    updateTestResult('method4', false, 'execCommand başarısız veya pano boş');
+                }
+            } catch (error) {
+                log(`❌ Test 4 başarısız: ${error.message}`, 'error');
+                updateTestResult('method4', false, error.message);
+            }
+        }
+        
+        function testMethod5() {
+            log('Test 5 (selection) başlatılıyor...');
+            try {
+                // Check if there's selected text
+                const selection = window.getSelection();
+                if (selection && selection.toString().trim()) {
+                    const selectedText = selection.toString().trim();
+                    log(`✅ Test 5 başarılı! Seçili metin: ${selectedText.substring(0, 50)}...`, 'success');
+                    updateTestResult('method5', true, selectedText);
+                } else {
+                    log('⚠️ Test 5: Seçili metin yok', 'warning');
+                    updateTestResult('method5', false, 'Seçili metin yok');
+                }
+            } catch (error) {
+                log(`❌ Test 5 başarısız: ${error.message}`, 'error');
+                updateTestResult('method5', false, error.message);
+            }
+        }
+        
         async function runAllTests() {
             log('=== TÜM TESTLER BAŞLATILIYOR ===', 'info');
             await testMethod1();
             testMethod2();
             testMethod3();
+            testMethod4();
+            testMethod5();
             log('=== TÜM TESTLER TAMAMLANDI ===', 'info');
+            
+            // Show summary
+            setTimeout(() => {
+                const results = document.querySelectorAll('#test-results p');
+                let successCount = 0;
+                let httpCompatibleCount = 0;
+                
+                results.forEach(result => {
+                    if (result.textContent?.includes('✅')) {
+                        successCount++;
+                    }
+                    if (result.textContent?.includes('HTTP')) {
+                        httpCompatibleCount++;
+                    }
+                });
+                
+                const isHttps = window.location.protocol === 'https:';
+                let message = `Test sonuçları: ${successCount}/5 yöntem çalışıyor`;
+                
+                if (httpCompatibleCount > 0) {
+                    message += `\n${httpCompatibleCount} yöntem HTTP'de çalışabilir`;
+                }
+                
+                if (!isHttps && successCount === 0) {
+                    message += '\n\nHTTPS olmadığı için modern pano API çalışmıyor.';
+                    message += '\nHTTP uyumlu yöntemler deneniyor...';
+                }
+                
+                alert(message);
+            }, 1000);
         }
         
         function updateTestResult(method, success, message) {

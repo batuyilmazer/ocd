@@ -13,7 +13,15 @@ Ubuntu/Linux sistemlerde YouTube URL'si kopyalandığında "Lütfen önce bir Yo
 
 ## 🛠️ Çözümler
 
-### 1. Tarayıcı İzinlerini Kontrol Edin
+### 1. HTTP'de Çalışan Pano Yöntemleri (HTTPS Gerektirmez)
+
+Uygulama artık HTTP'de de çalışan 3 farklı pano yöntemi kullanıyor:
+
+1. **document.execCommand** - Eski tarayıcılarda çalışır
+2. **Paste Event Capture** - Kullanıcı yapıştırdığında yakalar
+3. **Selection Fallback** - Seçili metni kontrol eder
+
+### 2. Tarayıcı İzinlerini Kontrol Edin
 
 #### Chrome/Chromium:
 1. Adres çubuğuna `chrome://settings/content/clipboard` yazın
@@ -25,13 +33,7 @@ Ubuntu/Linux sistemlerde YouTube URL'si kopyalandığında "Lütfen önce bir Yo
 2. `dom.events.clipboard.clipboardItem` değerini `true` yapın
 3. Tarayıcıyı yeniden başlatın
 
-### 2. HTTPS Kullanın
-
-Pano API'si sadece HTTPS bağlantılarda çalışır. HTTP kullanıyorsanız:
-- Sertifika ekleyin veya
-- Reverse proxy ile HTTPS yapılandırın
-
-### 3. Manuel Yapıştırma
+### 3. Manuel Yapıştırma (En Güvenilir Yöntem)
 
 Pano butonu çalışmıyorsa:
 1. YouTube URL'sini kopyalayın
@@ -44,13 +46,15 @@ Uygulamada:
 1. Sağ alt köşedeki "🐛 Debug Aç" butonuna tıklayın
 2. "Pano Testi Çalıştır" butonuna tıklayın
 3. Konsol çıktılarını kontrol edin
+4. HTTP uyumlu yöntemlerin çalışıp çalışmadığını görün
 
 ### 5. Pano Test Sayfası
 
 `frontend/clipboard-test.html` dosyasını tarayıcıda açarak:
 1. Pano durumunu kontrol edin
 2. Farklı pano yöntemlerini test edin
-3. Detaylı hata mesajlarını görün
+3. HTTP uyumlu yöntemlerin durumunu görün
+4. Detaylı hata mesajlarını inceleyin
 
 ## 🔧 Teknik Detaylar
 
@@ -76,6 +80,29 @@ Uygulamada:
 - **X11**: Geleneksel pano yöneticisi
 - **Clipboard Managers**: KDE, GNOME, XFCE farklılıkları
 
+## 🚀 HTTP'de Pano Erişimi
+
+### Modern Pano API (HTTPS Gerekli)
+- `navigator.clipboard.readText()` - Sadece HTTPS'de çalışır
+- Güvenlik nedeniyle kullanıcı izni gerekir
+- Ubuntu/Linux'ta ek yapılandırma gerekebilir
+
+### HTTP Uyumlu Yöntemler
+1. **document.execCommand('paste')**
+   - Eski tarayıcılarda çalışır
+   - HTTP'de çalışabilir
+   - Güvenlik kısıtlamaları var
+
+2. **Paste Event Capture**
+   - Kullanıcı Ctrl+V yaptığında yakalar
+   - HTTP'de çalışır
+   - En güvenilir fallback yöntemi
+
+3. **Selection API**
+   - Seçili metni kontrol eder
+   - HTTP'de çalışır
+   - Kullanıcı metni seçerse yardımcı olur
+
 ## 📋 Test Adımları
 
 1. **Temel Test**:
@@ -89,13 +116,20 @@ Uygulamada:
    ```
    - Debug modunu açın
    - Pano testini çalıştırın
-   - Konsol çıktılarını kontrol edin
+   - HTTP uyumlu yöntemleri kontrol edin
+   - Konsol çıktılarını inceleyin
    ```
 
 3. **Manuel Test**:
    ```
-   - URL'yi manuel yapıştırın
+   - URL'yi manuel yapıştırın (Ctrl+V)
    - İndirme işlemini test edin
+   ```
+
+4. **HTTP Test**:
+   ```
+   - HTTP sayfasında pano testini çalıştırın
+   - HTTP uyumlu yöntemlerin çalışıp çalışmadığını kontrol edin
    ```
 
 ## 🚀 Gelecek İyileştirmeler
