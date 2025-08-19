@@ -11,6 +11,9 @@ import {
 } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 
+// Version constant
+const APP_VERSION = '1.0.0';
+
 interface DownloadJob {
   id: string;
   status: 'queued' | 'downloading' | 'completed' | 'failed';
@@ -243,6 +246,11 @@ export default function App() {
           </View>
         </View>
       )}
+
+      {/* Version Indicator */}
+      <View style={styles.versionContainer}>
+        <Text style={styles.versionText}>v{APP_VERSION}</Text>
+      </View>
     </View>
   );
 }
@@ -374,5 +382,19 @@ const styles = StyleSheet.create({
     color: '#F44336',
     fontSize: 14,
     fontStyle: 'italic',
+  },
+  versionContainer: {
+    position: 'absolute',
+    bottom: 20,
+    right: 20,
+    backgroundColor: 'rgba(0, 0, 0, 0.1)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  versionText: {
+    fontSize: 12,
+    color: '#666',
+    fontWeight: '500',
   },
 });
