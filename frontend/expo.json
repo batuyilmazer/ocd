@@ -1,0 +1,13 @@
+{
+  "expo": {
+    "name": "YouTube Downloader",
+    "slug": "youtube-downloader",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "web": {
+      "bundler": "metro"
+    },
+    "platforms": ["web"]
+  }
+}
