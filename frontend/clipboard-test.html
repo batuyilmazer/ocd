@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pano Test - Ubuntu</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .button:hover {
+            background: #0056b3;
+        }
+        .success { color: #28a745; }
+        .error { color: #dc3545; }
+        .warning { color: #ffc107; }
+        .info { color: #17a2b8; }
+        .log {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 3px;
+            padding: 10px;
+            margin: 10px 0;
+            font-family: monospace;
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Ubuntu Pano Test Sayfası</h1>
+        <p>Bu sayfa Ubuntu/Linux sistemlerde pano erişimini test etmek için oluşturulmuştur.</p>
+        
+        <div class="test-section">
+            <h3>📋 Pano Durumu</h3>
+            <div id="clipboard-status"></div>
+            <button class="button" onclick="checkClipboardStatus()">Durumu Kontrol Et</button>
+        </div>
+        
+        <div class="test-section">
+            <h3>🧪 Pano Testleri</h3>
+            <button class="button" onclick="testMethod1()">Test 1: navigator.clipboard</button>
+            <button class="button" onclick="testMethod2()">Test 2: execCommand</button>
+            <button class="button" onclick="testMethod3()">Test 3: clipboardData</button>
+            <button class="button" onclick="runAllTests()">Tüm Testleri Çalıştır</button>
+        </div>
+        
+        <div class="test-section">
+            <h3>📝 Manuel Test</h3>
+            <p>Bir YouTube URL'si kopyalayın ve aşağıdaki butona tıklayın:</p>
+            <button class="button" onclick="readClipboard()">Panoyu Oku</button>
+            <div id="clipboard-content"></div>
+        </div>
+        
+        <div class="test-section">
+            <h3>📊 Test Sonuçları</h3>
+            <div id="test-results"></div>
+        </div>
+        
+        <div class="test-section">
+            <h3>📋 Log</h3>
+            <div id="log" class="log"></div>
+            <button class="button" onclick="clearLog()">Logu Temizle</button>
+        </div>
+        
+        <div class="test-section">
+            <h3>💡 Ubuntu/Linux Çözümleri</h3>
+            <ul>
+                <li><strong>Tarayıcıyı yeniden başlatın</strong> - Pano erişimi için gerekli olabilir</li>
+                <li><strong>Pano izinlerini kontrol edin</strong> - Tarayıcı ayarlarından pano erişimine izin verin</li>
+                <li><strong>HTTPS kullanın</strong> - Pano API'si sadece güvenli bağlantılarda çalışır</li>
+                <li><strong>Manuel yapıştırın</strong> - Ctrl+V ile URL'yi yapıştırın</li>
+                <li><strong>Farklı tarayıcı deneyin</strong> - Chrome, Firefox, Edge gibi</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        let logElement;
+        
+        function log(message, type = 'info') {
+            if (!logElement) logElement = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            const className = type;
+            logElement.innerHTML += `[${timestamp}] <span class="${className}">${message}</span>\n`;
+            logElement.scrollTop = logElement.scrollHeight;
+        }
+        
+        function clearLog() {
+            if (!logElement) logElement = document.getElementById('log');
+            logElement.innerHTML = '';
+        }
+        
+        function checkClipboardStatus() {
+            const statusDiv = document.getElementById('clipboard-status');
+            let html = '<h4>Pano Durumu:</h4>';
+            
+            // Platform bilgisi
+            html += `<p><strong>Platform:</strong> ${navigator.platform}</p>`;
+            html += `<p><strong>User Agent:</strong> ${navigator.userAgent}</p>`;
+            html += `<p><strong>HTTPS:</strong> ${window.location.protocol === 'https:' ? '✅ Evet' : '❌ Hayır'}</p>`;
+            
+            // Clipboard API durumu
+            if (navigator.clipboard) {
+                html += `<p><strong>Clipboard API:</strong> ✅ Destekleniyor</p>`;
+                
+                // Permission durumu
+                if (navigator.permissions) {
+                    navigator.permissions.query({ name: 'clipboard-read' })
+                        .then(permission => {
+                            html += `<p><strong>Pano İzni:</strong> ${permission.state}</p>`;
+                            statusDiv.innerHTML = html;
+                        })
+                        .catch(error => {
+                            html += `<p><strong>Pano İzni:</strong> ❌ Kontrol edilemedi</p>`;
+                            statusDiv.innerHTML = html;
+                        });
+                } else {
+                    html += `<p><strong>Pano İzni:</strong> ❌ Desteklenmiyor</p>`;
+                    statusDiv.innerHTML = html;
+                }
+            } else {
+                html += `<p><strong>Clipboard API:</strong> ❌ Desteklenmiyor</p>`;
+                statusDiv.innerHTML = html;
+            }
+            
+            log('Pano durumu kontrol edildi');
+        }
+        
+        async function testMethod1() {
+            log('Test 1 (navigator.clipboard) başlatılıyor...');
+            try {
+                const text = await navigator.clipboard.readText();
+                if (text) {
+                    log(`✅ Test 1 başarılı! Pano içeriği: ${text.substring(0, 50)}...`, 'success');
+                    updateTestResult('method1', true, text);
+                } else {
+                    log('⚠️ Test 1: Pano boş', 'warning');
+                    updateTestResult('method1', false, 'Pano boş');
+                }
+            } catch (error) {
+                log(`❌ Test 1 başarısız: ${error.message}`, 'error');
+                updateTestResult('method1', false, error.message);
+            }
+        }
+        
+        function testMethod2() {
+            log('Test 2 (execCommand) başlatılıyor...');
+            try {
+                const textArea = document.createElement('textarea');
+                textArea.value = '';
+                document.body.appendChild(textArea);
+                textArea.focus();
+                const success = document.execCommand('paste');
+                const text = textArea.value;
+                document.body.removeChild(textArea);
+                
+                if (success && text) {
+                    log(`✅ Test 2 başarılı! Pano içeriği: ${text.substring(0, 50)}...`, 'success');
+                    updateTestResult('method2', true, text);
+                } else {
+                    log('⚠️ Test 2: execCommand başarısız veya pano boş', 'warning');
+                    updateTestResult('method2', false, 'execCommand başarısız veya pano boş');
+                }
+            } catch (error) {
+                log(`❌ Test 2 başarısız: ${error.message}`, 'error');
+                updateTestResult('method2', false, error.message);
+            }
+        }
+        
+        function testMethod3() {
+            log('Test 3 (window.clipboardData) başlatılıyor...');
+            try {
+                if ('clipboardData' in window && window.clipboardData) {
+                    const text = window.clipboardData.getData('text');
+                    if (text) {
+                        log(`✅ Test 3 başarılı! Pano içeriği: ${text.substring(0, 50)}...`, 'success');
+                        updateTestResult('method3', true, text);
+                    } else {
+                        log('⚠️ Test 3: Pano boş', 'warning');
+                        updateTestResult('method3', false, 'Pano boş');
+                    }
+                } else {
+                    log('❌ Test 3: window.clipboardData desteklenmiyor', 'error');
+                    updateTestResult('method3', false, 'Desteklenmiyor');
+                }
+            } catch (error) {
+                log(`❌ Test 3 başarısız: ${error.message}`, 'error');
+                updateTestResult('method3', false, error.message);
+            }
+        }
+        
+        async function runAllTests() {
+            log('=== TÜM TESTLER BAŞLATILIYOR ===', 'info');
+            await testMethod1();
+            testMethod2();
+            testMethod3();
+            log('=== TÜM TESTLER TAMAMLANDI ===', 'info');
+        }
+        
+        function updateTestResult(method, success, message) {
+            const resultsDiv = document.getElementById('test-results');
+            const methodName = {
+                'method1': 'navigator.clipboard',
+                'method2': 'execCommand',
+                'method3': 'window.clipboardData'
+            }[method];
+            
+            const status = success ? '✅' : '❌';
+            const className = success ? 'success' : 'error';
+            
+            let existing = resultsDiv.innerHTML;
+            const pattern = new RegExp(`<p.*id="${method}".*</p>`);
+            
+            const newResult = `<p id="${method}" class="${className}"><strong>${methodName}:</strong> ${status} ${message}</p>`;
+            
+            if (existing.includes(`id="${method}"`)) {
+                resultsDiv.innerHTML = existing.replace(pattern, newResult);
+            } else {
+                resultsDiv.innerHTML += newResult;
+            }
+        }
+        
+        async function readClipboard() {
+            log('Pano okuma deneniyor...');
+            const contentDiv = document.getElementById('clipboard-content');
+            
+            try {
+                // Method 1
+                try {
+                    const text = await navigator.clipboard.readText();
+                    if (text) {
+                        contentDiv.innerHTML = `<h4>✅ Pano içeriği bulundu:</h4><p>${text}</p>`;
+                        log(`Pano içeriği: ${text}`, 'success');
+                        return;
+                    }
+                } catch (error) {
+                    log(`Method 1 başarısız: ${error.message}`, 'warning');
+                }
+                
+                // Method 2
+                try {
+                    const textArea = document.createElement('textarea');
+                    textArea.value = '';
+                    document.body.appendChild(textArea);
+                    textArea.focus();
+                    const success = document.execCommand('paste');
+                    const text = textArea.value;
+                    document.body.removeChild(textArea);
+                    
+                    if (success && text) {
+                        contentDiv.innerHTML = `<h4>✅ Pano içeriği bulundu (Method 2):</h4><p>${text}</p>`;
+                        log(`Pano içeriği (Method 2): ${text}`, 'success');
+                        return;
+                    }
+                } catch (error) {
+                    log(`Method 2 başarısız: ${error.message}`, 'warning');
+                }
+                
+                // Method 3
+                try {
+                    if ('clipboardData' in window && window.clipboardData) {
+                        const text = window.clipboardData.getData('text');
+                        if (text) {
+                            contentDiv.innerHTML = `<h4>✅ Pano içeriği bulundu (Method 3):</h4><p>${text}</p>`;
+                            log(`Pano içeriği (Method 3): ${text}`, 'success');
+                            return;
+                        }
+                    }
+                } catch (error) {
+                    log(`Method 3 başarısız: ${error.message}`, 'warning');
+                }
+                
+                contentDiv.innerHTML = '<h4>❌ Pano içeriği bulunamadı</h4><p>Hiçbir yöntem çalışmadı. Lütfen URL\'yi manuel olarak yapıştırın.</p>';
+                log('Hiçbir pano yöntemi çalışmadı', 'error');
+                
+            } catch (error) {
+                contentDiv.innerHTML = `<h4>❌ Hata oluştu</h4><p>${error.message}</p>`;
+                log(`Pano okuma hatası: ${error.message}`, 'error');
+            }
+        }
+        
+        // Sayfa yüklendiğinde otomatik durum kontrolü
+        window.onload = function() {
+            log('Pano test sayfası yüklendi');
+            checkClipboardStatus();
+        };
+    </script>
+</body>
+</html>
