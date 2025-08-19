@@ -1,0 +1,15 @@
+[Unit]
+Description=OCD Deployment Service
+After=network.target
+
+[Service]
+Type=oneshot
+User=deploy
+Group=deploy
+WorkingDirectory=/opt/ocd
+ExecStart=/opt/ocd/scripts/deploy.sh
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
