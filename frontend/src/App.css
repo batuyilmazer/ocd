@@ -1,98 +1,176 @@
 .App {
   text-align: center;
-  padding: 20px;
-  max-width: 600px;
-  margin: 0 auto;
+  padding: 0;
+  margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
     'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
     sans-serif;
+  min-height: 100vh;
+  background: radial-gradient(ellipse at center, rgba(45,45,45,1) 0%, rgba(28,28,28,1) 50%, rgba(12,12,12,1) 100%);
+  position: relative;
+  overflow: hidden;
 }
 
-.header {
-  margin-bottom: 30px;
-}
-
-.header h1 {
-  color: #333;
-  margin: 0;
-}
-
-.input-container {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 20px;
-}
-
-.input {
-  flex: 1;
-  padding: 12px;
-  border: 2px solid #ddd;
-  border-radius: 6px;
-  font-size: 16px;
-}
-
-.input:focus {
-  outline: none;
-  border-color: #007bff;
-}
-
-.paste-button {
-  padding: 12px 20px;
-  background-color: #6c757d;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 16px;
-}
-
-.paste-button:hover {
-  background-color: #5a6268;
-}
-
-.download-button {
+.viewport {
+  position: relative;
   width: 100%;
-  padding: 15px;
-  background-color: #007bff;
-  color: white;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 309px;
+  padding: 190px 590px;
+  box-sizing: border-box;
+}
+
+/* Main Circular Button */
+.main-button-container {
+  position: relative;
+  z-index: 10;
+  width: 270px;
+  height: 270px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.circular-button {
+  width: 260px;
+  height: 260px;
   border: none;
-  border-radius: 6px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #1d1d1d 0%, #262626 100%);
   cursor: pointer;
-  font-size: 18px;
-  font-weight: bold;
-  margin-bottom: 30px;
+  position: relative;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 
+    0px 283px 79px 0px rgba(0,0,0,0),
+    0px 181px 72px 0px rgba(0,0,0,0.03),
+    0px 102px 61px 0px rgba(0,0,0,0.1),
+    0px 45px 45px 0px rgba(0,0,0,0.17),
+    0px 11px 25px 0px rgba(0,0,0,0.19);
+  transform-origin: center;
+  outline: none;
 }
 
-.download-button:hover:not(.disabled) {
-  background-color: #0056b3;
+.circular-button:hover:not(.disabled) {
+  transform: scale(1.05);
+  box-shadow: 
+    0px 283px 79px 0px rgba(0,0,0,0),
+    0px 181px 72px 0px rgba(0,0,0,0.05),
+    0px 102px 61px 0px rgba(0,0,0,0.15),
+    0px 45px 45px 0px rgba(0,0,0,0.25),
+    0px 11px 25px 0px rgba(0,0,0,0.3);
 }
 
-.download-button.disabled {
-  background-color: #6c757d;
+.circular-button:active:not(.disabled) {
+  transform: scale(0.98);
+  transition: all 0.1s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.circular-button:focus {
+  outline: none;
+}
+
+.circular-button.disabled {
   cursor: not-allowed;
+  opacity: 0.6;
+  transform: none;
+  transition: none;
 }
 
-.job-container {
-  text-align: left;
+.button-content {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 45px;
+  box-sizing: border-box;
+  border-radius: 50%;
+  position: relative;
+  z-index: 2;
 }
 
-.job-container h2 {
-  color: #333;
-  margin-bottom: 15px;
+.button-icon {
+  font-size: 80px;
+  color: #ffffff;
+  text-shadow: 0 2px 10px rgba(0,0,0,0.3);
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
 }
 
-.job-card {
-  background-color: #f8f9fa;
-  border: 1px solid #dee2e6;
-  border-radius: 8px;
+.circular-button:hover:not(.disabled) .button-icon {
+  transform: scale(1.1);
+}
+
+.button-glow {
+  position: absolute;
+  inset: -5px;
+  border: 10px solid #434343;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0.3;
+  transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-sizing: border-box;
+}
+
+.circular-button:hover:not(.disabled) .button-glow {
+  opacity: 0.5;
+}
+
+/* Job Status Panel */
+.job-panel {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background: rgba(28, 28, 28, 0.95);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid #434343;
+  border-radius: 16px;
   padding: 20px;
+  max-width: 400px;
+  z-index: 1000;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  animation: slideInRight 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.job-header h2 {
+  color: #ffffff;
+  margin: 0 0 15px 0;
+  font-size: 18px;
+  text-align: center;
+  font-weight: 600;
+}
+
+.job-content {
+  color: #e0e0e0;
 }
 
 .job-status {
-  font-size: 18px;
+  font-size: 16px;
   font-weight: bold;
   margin-bottom: 15px;
-  color: #495057;
+  color: #ffffff;
+  text-align: center;
 }
 
 .progress-container {
@@ -101,23 +179,28 @@
 
 .progress-bar {
   width: 100%;
-  height: 20px;
-  background-color: #e9ecef;
-  border-radius: 10px;
+  height: 8px;
+  background-color: #333;
+  border-radius: 4px;
   overflow: hidden;
   margin-bottom: 10px;
+  box-shadow: inset 0 1px 3px rgba(0,0,0,0.3);
 }
 
 .progress-fill {
   height: 100%;
-  background-color: #28a745;
-  transition: width 0.3s ease;
+  background: linear-gradient(90deg, #667eea, #764ba2);
+  transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 4px;
+  box-shadow: 0 0 10px rgba(102, 126, 234, 0.3);
 }
 
 .progress-text {
   text-align: center;
   font-weight: bold;
-  color: #495057;
+  color: #ffffff;
+  font-size: 14px;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.3);
 }
 
 .completed-container {
@@ -125,27 +208,23 @@
 }
 
 .filename {
-  font-family: monospace;
-  background-color: #e9ecef;
+  font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+  background-color: #333;
   padding: 10px;
-  border-radius: 4px;
+  border-radius: 6px;
   margin-bottom: 15px;
   word-break: break-all;
+  font-size: 12px;
+  border: 1px solid #667eea;
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
 }
 
-.download-link {
-  padding: 12px 24px;
-  background-color: #28a745;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 16px;
+.success-message {
+  color: #4ade80;
   font-weight: bold;
-}
-
-.download-link:hover {
-  background-color: #218838;
+  font-size: 14px;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.3);
 }
 
 .error-container {
@@ -153,6 +232,115 @@
 }
 
 .error-text {
-  color: #dc3545;
+  color: #f87171;
   font-weight: bold;
+  font-size: 14px;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .viewport {
+    padding: 100px 20px;
+    gap: 200px;
+  }
+  
+  .main-button-container {
+    width: 220px;
+    height: 220px;
+  }
+  
+  .circular-button {
+    width: 200px;
+    height: 200px;
+  }
+  
+  .button-icon {
+    font-size: 60px;
+  }
+  
+  .job-panel {
+    position: relative;
+    top: auto;
+    right: auto;
+    bottom: auto;
+    left: auto;
+    margin: 20px auto;
+    max-width: 90%;
+    animation: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .main-button-container {
+    width: 200px;
+    height: 200px;
+  }
+  
+  .circular-button {
+    width: 180px;
+    height: 180px;
+  }
+  
+  .button-icon {
+    font-size: 50px;
+  }
+  
+  .viewport {
+    padding: 80px 15px;
+    gap: 150px;
+  }
+  
+  .button-content {
+    padding: 35px;
+  }
+}
+
+/* High DPI Display Support */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  .circular-button {
+    box-shadow: 
+      0px 283px 79px 0px rgba(0,0,0,0),
+      0px 181px 72px 0px rgba(0,0,0,0.03),
+      0px 102px 61px 0px rgba(0,0,0,0.1),
+      0px 45px 45px 0px rgba(0,0,0,0.17),
+      0px 11px 25px 0px rgba(0,0,0,0.19);
+  }
+  
+  .button-glow {
+    border-width: 10px;
+  }
+}
+
+/* Smooth scrolling and better performance */
+* {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* Focus styles for accessibility */
+.circular-button:focus-visible {
+  outline: 2px solid #667eea;
+  outline-offset: 4px;
+}
+
+/* Reduce motion for users who prefer it */
+@media (prefers-reduced-motion: reduce) {
+  .circular-button,
+  .button-icon,
+  .button-glow,
+  .progress-fill,
+  .job-panel {
+    transition: none;
+    animation: none;
+  }
+  
+  .circular-button:hover:not(.disabled) {
+    transform: none;
+  }
+  
+  .circular-button:hover:not(.disabled) .button-icon {
+    transform: none;
+  }
 }

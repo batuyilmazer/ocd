@@ -2,38 +2,32 @@ import React, { useState, useEffect } from 'react';
 import './App.css';
 
 function App() {
-  const [url, setUrl] = useState('');
   const [currentJob, setCurrentJob] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  const readClipboard = async () => {
-    try {
-      const text = await navigator.clipboard.readText();
-      if (text && isValidYouTubeUrl(text)) {
-        setUrl(text);
-      }
-    } catch (error) {
-      console.log('Could not read clipboard:', error);
-    }
-  };
-
-  const isValidYouTubeUrl = (url) => {
-    const youtubeRegex = /^(https?:\/\/)?(www\.)?(youtube\.com\/(watch\?v=|shorts\/)|youtu\.be\/)[a-zA-Z0-9_-]+/;
-    return youtubeRegex.test(url);
-  };
-
-  const startDownload = async () => {
-    if (!url.trim()) {
-      alert('Lütfen bir YouTube URL\'si girin');
-      return;
-    }
-    if (!isValidYouTubeUrl(url)) {
-      alert('Lütfen geçerli bir YouTube URL\'si girin');
-      return;
-    }
-
+  const handleSingleClickDownload = async () => {
     setIsLoading(true);
+    
     try {
+      // Step 1: Read clipboard
+      let url = '';
+      try {
+        url = await navigator.clipboard.readText();
+      } catch (error) {
+        console.log('Could not read clipboard:', error);
+        alert('Lütfen önce bir YouTube URL\'si kopyalayın, sonra tekrar deneyin.');
+        setIsLoading(false);
+        return;
+      }
+
+      // Step 2: Validate YouTube URL
+      if (!url || !isValidYouTubeUrl(url)) {
+        alert('Kopyalanan metin geçerli bir YouTube URL\'si değil. Lütfen bir YouTube URL\'si kopyalayın.');
+        setIsLoading(false);
+        return;
+      }
+
+      // Step 3: Start download
       const response = await fetch('/api/download', {
         method: 'POST',
         headers: {
@@ -53,14 +47,20 @@ function App() {
         status: 'queued',
         progress: 0
       });
-      setUrl('');
-      alert('Başarılı', 'İndirme başladı!');
+
+      alert('İndirme başladı! Dosya hazır olduğunda otomatik olarak indirilecek.');
+
     } catch (error) {
-      alert('Hata', error instanceof Error ? error.message : 'İndirme başlatılamadı');
+      alert('Hata: ' + (error instanceof Error ? error.message : 'İndirme başlatılamadı'));
       console.error('Download error:', error);
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const isValidYouTubeUrl = (url) => {
+    const youtubeRegex = /^(https?:\/\/)?(www\.)?(youtube\.com\/(watch\?v=|shorts\/)|youtu\.be\/)[a-zA-Z0-9_-]+/;
+    return youtubeRegex.test(url);
   };
 
   const pollJobStatus = async (jobId) => {
@@ -93,29 +93,29 @@ function App() {
     return () => clearInterval(interval);
   }, [currentJob]);
 
-  const getDownloadLink = (filename) => {
-    return `/files/${filename}`;
-  };
-
-  const handleDownload = (filename) => {
-    try {
-      const downloadUrl = getDownloadLink(filename);
+  // Auto-download when job completes
+  useEffect(() => {
+    if (currentJob && currentJob.status === 'completed' && currentJob.filename) {
+      // Auto-download the file
+      const downloadUrl = `/files/${currentJob.filename}`;
       const link = document.createElement('a');
       link.href = downloadUrl;
-      link.download = filename;
+      link.download = currentJob.filename;
       link.target = '_blank';
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-    } catch (error) {
-      console.error('Download error:', error);
-      window.open(getDownloadLink(filename), '_blank');
+      
+      // Clear the job after successful download
+      setTimeout(() => {
+        setCurrentJob(null);
+      }, 2000);
     }
-  };
+  }, [currentJob]);
 
   const getStatusText = (status) => {
     switch (status) {
-      case 'completed': return 'Tamamlandı';
+      case 'completed': return 'Tamamlandı - Dosya İndiriliyor';
       case 'downloading': return 'İndiriliyor';
       case 'queued': return 'Sırada';
       case 'failed': return 'Başarısız';
@@ -125,35 +125,31 @@ function App() {
 
   return (
     <div className="App">
-      <div className="header">
-        <h1>YouTube İndirici</h1>
+      <div className="viewport">
+        {/* Main Circular Button */}
+        <div className="main-button-container">
+          <button
+            className={`circular-button ${isLoading ? 'disabled' : ''}`}
+            onClick={handleSingleClickDownload}
+            disabled={isLoading}
+          >
+            <div className="button-content">
+              <div className="button-icon">
+                📋
+              </div>
+            </div>
+            <div className="button-glow" />
+          </button>
+        </div>
       </div>
-      
-      <div className="input-container">
-        <input
-          type="text"
-          className="input"
-          placeholder="YouTube URL'sini buraya yapıştırın..."
-          value={url}
-          onChange={(e) => setUrl(e.target.value)}
-        />
-        <button className="paste-button" onClick={readClipboard}>
-          Yapıştır
-        </button>
-      </div>
-      
-      <button
-        className={`download-button ${isLoading ? 'disabled' : ''}`}
-        onClick={startDownload}
-        disabled={isLoading}
-      >
-        {isLoading ? 'İşleniyor...' : 'İndir'}
-      </button>
-      
+
+      {/* Job Status Panel */}
       {currentJob && (
-        <div className="job-container">
-          <h2>İndirme Durumu</h2>
-          <div className="job-card">
+        <div className="job-panel">
+          <div className="job-header">
+            <h2>İndirme Durumu</h2>
+          </div>
+          <div className="job-content">
             <div className="job-status">{getStatusText(currentJob.status)}</div>
             
             {currentJob.status === 'downloading' && (
@@ -171,18 +167,13 @@ function App() {
             {currentJob.status === 'completed' && currentJob.filename && (
               <div className="completed-container">
                 <div className="filename">{currentJob.filename}</div>
-                <button 
-                  className="download-link"
-                  onClick={() => handleDownload(currentJob.filename)}
-                >
-                  Dosyayı İndir
-                </button>
+                <div className="success-message">✅ Dosya başarıyla indirildi!</div>
               </div>
             )}
             
             {currentJob.status === 'failed' && currentJob.error && (
               <div className="error-container">
-                <div className="error-text">Hata: {currentJob.error}</div>
+                <div className="error-text">❌ Hata: {currentJob.error}</div>
               </div>
             )}
           </div>
